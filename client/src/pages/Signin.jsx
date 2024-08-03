@@ -1,24 +1,25 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 // import OAuth from '../components/OAuth';
-
-
+import { signInStart, signInSuccess, signInFailure } from '../redux/user/userSlice';
+import { useDispatch, useSelector } from 'react-redux';
 
 const Signin = () => {
-  const [formData, setFormData] = useState({});
-  const [error, setError] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ email: '', password: '' }); // Ensure initial formData
+  const { error, loading } = useSelector((state) => state.user); // Correctly access user state
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  // Handle form changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
-  }
+  };
 
-
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
-      setError(false);
+      dispatch(signInStart());
       const res = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: {
@@ -26,19 +27,21 @@ const Signin = () => {
         },
         body: JSON.stringify(formData),
       });
+
       const data = await res.json();
-      console.log(data);
-      setLoading(false);
+
       if (data.success === false) {
-        setError(true);
+        dispatch(signInFailure('Invalid credentials')); // Dispatch failure with message
         return;
       }
+
+      dispatch(signInSuccess(data));
       navigate('/home');
     } catch (error) {
-      setLoading(false);
-      setError(true);
+      dispatch(signInFailure(error.message)); // Dispatch failure with error message
     }
   };
+
   return (
     <div className='p-3 max-w-lg mx-auto'>
       <h1 className='text-3xl text-center font-semibold my-7'>Sign In</h1>
@@ -66,14 +69,14 @@ const Signin = () => {
         {/* <OAuth /> */}
       </form>
       <div className='flex gap-2 mt-5'>
-        <p>New here?</p>
+        <p>Don't have an account?</p>
         <Link to='/sign-up'>
           <span className='text-blue-500'>Sign Up</span>
         </Link>
       </div>
-      <p className='text-red-700 mt-5'>{error && 'Something went wrong!'}</p>
+      <p className='text-red-700 mt-5'>{error && `Error: ${error}`}</p> {/* Display error message */}
     </div>
   )
 }
 
-export default Signin
+export default Signin;
